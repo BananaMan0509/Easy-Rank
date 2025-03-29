@@ -1,41 +1,35 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Elements
-    const setupDiv = document.getElementById('setup');
-    const comparisonDiv = document.getElementById('comparison');
-    const resultsDiv = document.getElementById('results');
+    // DOM Elements
+    const screens = {
+        setup: document.getElementById('setup-screen'),
+        compare: document.getElementById('compare-screen'),
+        results: document.getElementById('results-screen')
+    };
+    
     const itemInput = document.getElementById('item-input');
     const addBtn = document.getElementById('add-btn');
     const startBtn = document.getElementById('start-btn');
     const itemsList = document.getElementById('items-list');
     const errorMessage = document.getElementById('error-message');
-    const saveBtn = document.getElementById('save-btn');
-    const listNameInput = document.getElementById('list-name');
-    const savedListsDiv = document.getElementById('saved-lists');
     const choice1Btn = document.getElementById('choice1');
     const choice2Btn = document.getElementById('choice2');
-    const progressBar = document.getElementById('progress');
+    const progressBar = document.getElementById('progress-bar');
+    const resultsDiv = document.getElementById('results');
 
-    // State
+    // App State
     let items = [];
     let ranker;
-    let currentListId = null;
 
-    // Initialize
-    loadSavedLists();
-
-    // Add item on button click or Enter key
+    // Event Listeners
     addBtn.addEventListener('click', addItem);
     itemInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') addItem();
     });
-
-    // Start ranking
     startBtn.addEventListener('click', startRanking);
+    choice1Btn.addEventListener('click', () => makeChoice(choice1Btn.textContent));
+    choice2Btn.addEventListener('click', () => makeChoice(choice2Btn.textContent));
 
-    // Save list
-    saveBtn.addEventListener('click', saveList);
-
-    // Core functions
+    // Core Functions
     function addItem() {
         const item = itemInput.value.trim();
         
@@ -58,71 +52,109 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function startRanking() {
         if (items.length >= 2) {
-            setupDiv.style.display = 'none';
-            comparisonDiv.style.display = 'block';
-            ranker = new PairwiseRanker(items);
+            // Initialize the ranker
+            ranker = {
+                items: [...items],
+                comparisons: [],
+                remainingPairs: generateAllPairs(items),
+                rankings: {}
+            };
+            
+            // Initialize rankings
+            items.forEach(item => {
+                ranker.rankings[item] = { wins: 0, losses: 0 };
+            });
+            
+            // Shuffle pairs
+            shuffleArray(ranker.remainingPairs);
+            
+            // Show first comparison
+            showScreen('compare');
             showNextPair();
         }
     }
 
-    function saveList() {
-        const name = listNameInput.value.trim();
-        if (!name) {
-            showError("Please name your list");
-            return;
+    function makeChoice(winner) {
+        const [item1, item2] = ranker.currentPair;
+        
+        // Update rankings
+        if (winner === item1) {
+            ranker.rankings[item1].wins++;
+            ranker.rankings[item2].losses++;
+        } else {
+            ranker.rankings[item2].wins++;
+            ranker.rankings[item1].losses++;
         }
         
-        const lists = JSON.parse(localStorage.getItem('rankingLists') || '{}');
-        const id = currentListId || Date.now().toString();
+        // Store comparison
+        ranker.comparisons.push({
+            pair: [item1, item2],
+            choice: winner,
+            timestamp: new Date()
+        });
         
-        lists[id] = {
-            name: name,
-            items: [...items],
-            createdAt: lists[id]?.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        
-        localStorage.setItem('rankingLists', JSON.stringify(lists));
-        listNameInput.value = '';
-        currentListId = null;
-        loadSavedLists();
+        // Show next pair or results
+        showNextPair();
     }
 
-    // Ranking logic
     function showNextPair() {
-        const pair = ranker.getNextPair();
-        if (!pair) {
+        if (ranker.remainingPairs.length > 0) {
+            ranker.currentPair = ranker.remainingPairs.pop();
+            choice1Btn.textContent = ranker.currentPair[0];
+            choice2Btn.textContent = ranker.currentPair[1];
+            updateProgress();
+        } else {
             showResults();
-            return;
         }
-        choice1Btn.textContent = pair[0];
-        choice2Btn.textContent = pair[1];
-        updateProgress();
-    }
-
-    function updateProgress() {
-        const progress = ranker.getProgress();
-        progressBar.textContent = `${progress.percent}%`;
-        progressBar.style.width = `${progress.percent}%`;
     }
 
     function showResults() {
-        comparisonDiv.style.display = 'none';
-        resultsDiv.style.display = 'block';
-        const rankings = ranker.getRankings();
-        resultsDiv.innerHTML = `
-            <h2>Your Ranking Results:</h2>
-            ${rankings.map((item, i) => `<div class="item">${i+1}. ${item}</div>`).join('')}
-            <button onclick="location.reload()">Start New Ranking</button>
-        `;
+        // Calculate final rankings
+        const rankings = items.slice().sort((a, b) => {
+            const scoreA = ranker.rankings[a].wins - ranker.rankings[a].losses;
+            const scoreB = ranker.rankings[b].wins - ranker.rankings[b].losses;
+            return scoreB - scoreA;
+        });
+        
+        // Display results
+        resultsDiv.innerHTML = rankings.map((item, index) => 
+            `<div class="item">${index + 1}. ${item}</div>`
+        ).join('');
+        
+        showScreen('results');
     }
 
-    // UI Helpers
+    // Helper Functions
+    function generateAllPairs(items) {
+        const pairs = [];
+        for (let i = 0; i < items.length; i++) {
+            for (let j = i + 1; j < items.length; j++) {
+                pairs.push([items[i], items[j]]);
+            }
+        }
+        return pairs;
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function updateProgress() {
+        const totalPairs = (items.length * (items.length - 1)) / 2;
+        const completed = totalPairs - ranker.remainingPairs.length;
+        const percent = Math.round((completed / totalPairs) * 100);
+        progressBar.textContent = `${percent}%`;
+        progressBar.style.width = `${percent}%`;
+    }
+
     function renderItemsList() {
-        itemsList.innerHTML = items.map((item, i) => `
+        itemsList.innerHTML = items.map((item, index) => `
             <div class="item">
-                <span>${i+1}. ${item}</span>
-                <button onclick="removeItem(${i})">×</button>
+                <span>${index + 1}. ${item}</span>
+                <button onclick="removeItem(${index})">×</button>
             </div>
         `).join('');
     }
@@ -131,59 +163,15 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessage.textContent = message;
     }
 
-    function loadSavedLists() {
-        const lists = JSON.parse(localStorage.getItem('rankingLists') || '{}');
-        savedListsDiv.innerHTML = Object.entries(lists).map(([id, list]) => `
-            <div class="item">
-                <span>${list.name} (${list.items.length} items)</span>
-                <div>
-                    <button onclick="loadList('${id}')">Load</button>
-                    <button onclick="deleteList('${id}')">Delete</button>
-                </div>
-            </div>
-        `).join('');
+    function showScreen(screenName) {
+        Object.values(screens).forEach(screen => screen.classList.remove('active'));
+        screens[screenName].classList.add('active');
     }
 
-    // Global functions
+    // Global function for item removal
     window.removeItem = function(index) {
         items.splice(index, 1);
         renderItemsList();
         startBtn.disabled = items.length < 2;
     };
-
-    window.loadList = function(id) {
-        const lists = JSON.parse(localStorage.getItem('rankingLists') || '{}');
-        if (lists[id]) {
-            items = [...lists[id].items];
-            currentListId = id;
-            listNameInput.value = lists[id].name;
-            renderItemsList();
-            startBtn.disabled = items.length < 2;
-        }
-    };
-
-    window.deleteList = function(id) {
-        const lists = JSON.parse(localStorage.getItem('rankingLists') || '{}');
-        delete lists[id];
-        localStorage.setItem('rankingLists', JSON.stringify(lists));
-        loadSavedLists();
-        if (currentListId === id) {
-            items = [];
-            currentListId = null;
-            listNameInput.value = '';
-            renderItemsList();
-            startBtn.disabled = true;
-        }
-    };
-
-    // Initialize ranking buttons
-    choice1Btn.addEventListener('click', () => {
-        ranker.recordChoice(choice1Btn.textContent);
-        showNextPair();
-    });
-
-    choice2Btn.addEventListener('click', () => {
-        ranker.recordChoice(choice2Btn.textContent);
-        showNextPair();
-    });
 });

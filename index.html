@@ -12,8 +12,11 @@
             padding: 20px;
             text-align: center;
         }
-        #setup {
-            margin-bottom: 20px;
+        .screen {
+            display: none;
+        }
+        .active {
+            display: block;
         }
         #item-input {
             padding: 10px;
@@ -45,27 +48,37 @@
             margin: 5px 0;
             min-height: 20px;
         }
-        #comparison, #results {
-            display: none;
-        }
         .choice-btn {
             padding: 15px 25px;
             font-size: 16px;
             margin: 10px;
             min-width: 200px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
         }
-        .save-section {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
+        .progress-container {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        #progress-bar {
+            height: 30px;
+            background-color: #4CAF50;
+            border-radius: 4px;
+            width: 0%;
+            text-align: center;
+            line-height: 30px;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <h1>Ranking App</h1>
-    
     <!-- Setup Screen -->
-    <div id="setup">
+    <div id="setup-screen" class="screen active">
+        <h1>Ranking App</h1>
         <h2>Enter Items to Rank</h2>
         <div>
             <input type="text" id="item-input" placeholder="Enter an item (press Enter)">
@@ -74,28 +87,27 @@
         <div id="error-message" class="error"></div>
         <div id="items-list"></div>
         <button id="start-btn" disabled>Start Ranking</button>
-        
-        <div class="save-section">
-            <input type="text" id="list-name" placeholder="Name this list">
-            <button id="save-btn">Save List</button>
-            <div id="saved-lists"></div>
-        </div>
     </div>
-    
-    <!-- Comparison Screen -->
-    <div id="comparison">
-        <h2>Which do you prefer?</h2>
-        <button id="choice1" class="choice-btn"></button>
-        <button id="choice2" class="choice-btn"></button>
-        <div class="progress-bar">
-            <div id="progress">0%</div>
-        </div>
-    </div>
-    
-    <!-- Results Screen -->
-    <div id="results"></div>
 
-    <script src="pairwise-ranker.js"></script>
+    <!-- Comparison Screen -->
+    <div id="compare-screen" class="screen">
+        <h1>Which do you prefer?</h1>
+        <div id="comparison">
+            <button id="choice1" class="choice-btn"></button>
+            <button id="choice2" class="choice-btn"></button>
+        </div>
+        <div class="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results-screen" class="screen">
+        <h1>Your Ranking Results</h1>
+        <div id="results"></div>
+        <button onclick="window.location.reload()">Start New Ranking</button>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
