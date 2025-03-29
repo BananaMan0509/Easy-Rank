@@ -12,11 +12,11 @@
             padding: 20px;
             text-align: center;
         }
-        .screen {
-            display: none;
+        #setup-screen, #compare-screen {
+            transition: all 0.3s ease;
         }
-        .active {
-            display: block;
+        #compare-screen, #results-screen {
+            display: none;
         }
         #item-input {
             padding: 10px;
@@ -43,56 +43,61 @@
             background: #f5f5f5;
             border-radius: 4px;
         }
-        .error {
-            color: red;
-            margin: 5px 0;
-            min-height: 20px;
-        }
         .choice-btn {
             padding: 15px 25px;
-            font-size: 16px;
+            font-size: 18px;
             margin: 10px;
             min-width: 200px;
-            background: #4CAF50;
+            background: #4285F4;
             color: white;
             border: none;
             border-radius: 4px;
+            cursor: pointer;
         }
         .progress-container {
             width: 100%;
-            background-color: #ddd;
+            background-color: #f1f1f1;
             border-radius: 4px;
             margin: 20px 0;
         }
         #progress-bar {
             height: 30px;
-            background-color: #4CAF50;
+            background-color: #34A853;
             border-radius: 4px;
             width: 0%;
             text-align: center;
             line-height: 30px;
             color: white;
         }
+        #results {
+            margin-top: 20px;
+        }
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f8f8;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
     <!-- Setup Screen -->
-    <div id="setup-screen" class="screen active">
+    <div id="setup-screen">
         <h1>Ranking App</h1>
         <h2>Enter Items to Rank</h2>
         <div>
             <input type="text" id="item-input" placeholder="Enter an item (press Enter)">
             <button id="add-btn">Add Item</button>
         </div>
-        <div id="error-message" class="error"></div>
+        <div id="error-message" style="color:red;min-height:20px;"></div>
         <div id="items-list"></div>
         <button id="start-btn" disabled>Start Ranking</button>
     </div>
 
     <!-- Comparison Screen -->
-    <div id="compare-screen" class="screen">
+    <div id="compare-screen">
         <h1>Which do you prefer?</h1>
-        <div id="comparison">
+        <div>
             <button id="choice1" class="choice-btn"></button>
             <button id="choice2" class="choice-btn"></button>
         </div>
@@ -102,10 +107,10 @@
     </div>
 
     <!-- Results Screen -->
-    <div id="results-screen" class="screen">
+    <div id="results-screen">
         <h1>Your Ranking Results</h1>
         <div id="results"></div>
-        <button onclick="window.location.reload()">Start New Ranking</button>
+        <button id="new-ranking-btn">Start New Ranking</button>
     </div>
 
     <script src="app.js"></script>

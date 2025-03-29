@@ -1,11 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
-    const screens = {
-        setup: document.getElementById('setup-screen'),
-        compare: document.getElementById('compare-screen'),
-        results: document.getElementById('results-screen')
-    };
-    
+    const setupScreen = document.getElementById('setup-screen');
+    const compareScreen = document.getElementById('compare-screen');
+    const resultsScreen = document.getElementById('results-screen');
     const itemInput = document.getElementById('item-input');
     const addBtn = document.getElementById('add-btn');
     const startBtn = document.getElementById('start-btn');
@@ -15,10 +12,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const choice2Btn = document.getElementById('choice2');
     const progressBar = document.getElementById('progress-bar');
     const resultsDiv = document.getElementById('results');
+    const newRankingBtn = document.getElementById('new-ranking-btn');
 
     // App State
     let items = [];
-    let ranker;
+    let comparisons = [];
+    let remainingPairs = [];
+    let rankings = {};
+    let currentPair = null;
 
     // Event Listeners
     addBtn.addEventListener('click', addItem);
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
     startBtn.addEventListener('click', startRanking);
     choice1Btn.addEventListener('click', () => makeChoice(choice1Btn.textContent));
     choice2Btn.addEventListener('click', () => makeChoice(choice2Btn.textContent));
+    newRankingBtn.addEventListener('click', resetApp);
 
     // Core Functions
     function addItem() {
@@ -51,45 +53,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function startRanking() {
-        if (items.length >= 2) {
-            // Initialize the ranker
-            ranker = {
-                items: [...items],
-                comparisons: [],
-                remainingPairs: generateAllPairs(items),
-                rankings: {}
-            };
-            
-            // Initialize rankings
-            items.forEach(item => {
-                ranker.rankings[item] = { wins: 0, losses: 0 };
-            });
-            
-            // Shuffle pairs
-            shuffleArray(ranker.remainingPairs);
-            
-            // Show first comparison
-            showScreen('compare');
-            showNextPair();
+        if (items.length < 2) return;
+        
+        // Initialize rankings
+        rankings = {};
+        items.forEach(item => {
+            rankings[item] = { wins: 0, losses: 0 };
+        });
+        
+        // Generate all possible pairs
+        remainingPairs = [];
+        for (let i = 0; i < items.length; i++) {
+            for (let j = i + 1; j < items.length; j++) {
+                remainingPairs.push([items[i], items[j]]);
+            }
         }
+        
+        // Shuffle pairs for randomness
+        shuffleArray(remainingPairs);
+        
+        // Hide setup, show comparison screen
+        setupScreen.style.display = 'none';
+        compareScreen.style.display = 'block';
+        
+        // Show first pair
+        showNextPair();
     }
 
-    function makeChoice(winner) {
-        const [item1, item2] = ranker.currentPair;
-        
+    function makeChoice(selectedItem) {
         // Update rankings
-        if (winner === item1) {
-            ranker.rankings[item1].wins++;
-            ranker.rankings[item2].losses++;
+        const [item1, item2] = currentPair;
+        if (selectedItem === item1) {
+            rankings[item1].wins++;
+            rankings[item2].losses++;
         } else {
-            ranker.rankings[item2].wins++;
-            ranker.rankings[item1].losses++;
+            rankings[item2].wins++;
+            rankings[item1].losses++;
         }
         
         // Store comparison
-        ranker.comparisons.push({
-            pair: [item1, item2],
-            choice: winner,
+        comparisons.push({
+            pair: currentPair,
+            choice: selectedItem,
             timestamp: new Date()
         });
         
@@ -98,10 +103,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showNextPair() {
-        if (ranker.remainingPairs.length > 0) {
-            ranker.currentPair = ranker.remainingPairs.pop();
-            choice1Btn.textContent = ranker.currentPair[0];
-            choice2Btn.textContent = ranker.currentPair[1];
+        if (remainingPairs.length > 0) {
+            currentPair = remainingPairs.pop();
+            choice1Btn.textContent = currentPair[0];
+            choice2Btn.textContent = currentPair[1];
             updateProgress();
         } else {
             showResults();
@@ -110,46 +115,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showResults() {
         // Calculate final rankings
-        const rankings = items.slice().sort((a, b) => {
-            const scoreA = ranker.rankings[a].wins - ranker.rankings[a].losses;
-            const scoreB = ranker.rankings[b].wins - ranker.rankings[b].losses;
+        const sortedItems = items.slice().sort((a, b) => {
+            const scoreA = rankings[a].wins - rankings[a].losses;
+            const scoreB = rankings[b].wins - rankings[b].losses;
             return scoreB - scoreA;
         });
         
         // Display results
-        resultsDiv.innerHTML = rankings.map((item, index) => 
-            `<div class="item">${index + 1}. ${item}</div>`
+        resultsDiv.innerHTML = sortedItems.map((item, index) => 
+            `<div class="result-item">${index + 1}. ${item}</div>`
         ).join('');
         
-        showScreen('results');
+        compareScreen.style.display = 'none';
+        resultsScreen.style.display = 'block';
+    }
+
+    function resetApp() {
+        items = [];
+        comparisons = [];
+        remainingPairs = [];
+        rankings = {};
+        currentPair = null;
+        
+        itemInput.value = '';
+        errorMessage.textContent = '';
+        itemsList.innerHTML = '';
+        startBtn.disabled = true;
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        
+        resultsScreen.style.display = 'none';
+        setupScreen.style.display = 'block';
     }
 
     // Helper Functions
-    function generateAllPairs(items) {
-        const pairs = [];
-        for (let i = 0; i < items.length; i++) {
-            for (let j = i + 1; j < items.length; j++) {
-                pairs.push([items[i], items[j]]);
-            }
-        }
-        return pairs;
-    }
-
-    function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-    }
-
-    function updateProgress() {
-        const totalPairs = (items.length * (items.length - 1)) / 2;
-        const completed = totalPairs - ranker.remainingPairs.length;
-        const percent = Math.round((completed / totalPairs) * 100);
-        progressBar.textContent = `${percent}%`;
-        progressBar.style.width = `${percent}%`;
-    }
-
     function renderItemsList() {
         itemsList.innerHTML = items.map((item, index) => `
             <div class="item">
@@ -163,9 +162,19 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessage.textContent = message;
     }
 
-    function showScreen(screenName) {
-        Object.values(screens).forEach(screen => screen.classList.remove('active'));
-        screens[screenName].classList.add('active');
+    function updateProgress() {
+        const totalComparisons = (items.length * (items.length - 1)) / 2;
+        const completed = totalComparisons - remainingPairs.length;
+        const percent = Math.round((completed / totalComparisons) * 100);
+        progressBar.style.width = `${percent}%`;
+        progressBar.textContent = `${percent}%`;
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
     }
 
     // Global function for item removal
