@@ -5,7 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ranking App</title>
     <style>
-        /* ... (keep all existing styles) ... */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #setup-screen, #compare-screen {
+            transition: all 0.3s ease;
+        }
+        #compare-screen, #results-screen {
+            display: none;
+        }
+        #item-input {
+            padding: 10px;
+            width: 300px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        #items-list {
+            margin: 15px auto;
+            min-height: 50px;
+            border: 1px dashed #ccc;
+            padding: 10px;
+            max-width: 500px;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        .choice-btn {
+            padding: 15px 25px;
+            font-size: 18px;
+            margin: 10px;
+            min-width: 200px;
+            background: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .progress-container {
+            width: 100%;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        #progress-bar {
+            height: 30px;
+            background-color: #34A853;
+            border-radius: 4px;
+            width: 0%;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f8f8;
+            border-radius: 4px;
+        }
+        .save-load-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .file-input {
+            display: none;
+        }
+        .file-label {
+            padding: 8px 15px;
+            background: #f1f1f1;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+            margin: 5px;
+        }
+        #new-items-notice {
+            color: #E8710A;
+            margin: 10px 0;
+            font-weight: bold;
+        }
         .list-name-section {
             margin-bottom: 15px;
         }
@@ -34,33 +127,197 @@
             <input type="text" id="item-input" placeholder="Enter an item (press Enter)">
             <button id="add-btn">Add Item</button>
         </div>
-        <!-- ... (rest of the existing HTML remains the same) ... -->
+        <div id="error-message" style="color:red;min-height:20px;"></div>
+        <div id="items-list"></div>
+        <div id="new-items-notice"></div>
+        <button id="start-btn" disabled>Start Ranking</button>
+        
+        <div class="save-load-section">
+            <button id="load-btn" class="file-label">Load Saved List</button>
+            <input type="file" id="file-input" class="file-input" accept=".json">
+        </div>
+    </div>
+
+    <!-- Comparison Screen -->
+    <div id="compare-screen">
+        <h1>Which do you prefer?</h1>
+        <div>
+            <button id="choice1" class="choice-btn"></button>
+            <button id="choice2" class="choice-btn"></button>
+        </div>
+        <div class="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results-screen">
+        <h1>Your Ranking Results</h1>
+        <div id="results"></div>
+        <button id="save-results-btn">Save This Ranking</button>
+        <button id="new-ranking-btn">Start New Ranking</button>
     </div>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ... (keep all existing variable declarations) ...
-        
-        // Add new elements
+        // DOM Elements
+        const setupScreen = document.getElementById('setup-screen');
+        const compareScreen = document.getElementById('compare-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const itemInput = document.getElementById('item-input');
+        const addBtn = document.getElementById('add-btn');
+        const startBtn = document.getElementById('start-btn');
+        const itemsList = document.getElementById('items-list');
+        const errorMessage = document.getElementById('error-message');
+        const choice1Btn = document.getElementById('choice1');
+        const choice2Btn = document.getElementById('choice2');
+        const progressBar = document.getElementById('progress-bar');
+        const resultsDiv = document.getElementById('results');
+        const newRankingBtn = document.getElementById('new-ranking-btn');
+        const saveResultsBtn = document.getElementById('save-results-btn');
+        const loadBtn = document.getElementById('load-btn');
+        const fileInput = document.getElementById('file-input');
+        const newItemsNotice = document.getElementById('new-items-notice');
         const listNameInput = document.getElementById('list-name-input');
         const saveNameBtn = document.getElementById('save-name-btn');
-        
-        // Add to App State
-        let listName = "my-ranking";
-        
-        // New Event Listener
-        saveNameBtn.addEventListener('click', function() {
-            const newName = listNameInput.value.trim();
-            if (newName) {
-                listName = newName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-                alert(`List name set to: ${newName}`);
-            }
-        });
 
-        // Modify the saveResults function
+        // App State
+        let items = [];
+        let originalItems = [];
+        let comparisons = [];
+        let remainingPairs = [];
+        let rankings = {};
+        let currentPair = null;
+        let listName = "my-ranking";
+
+        // Event Listeners
+        addBtn.addEventListener('click', addItem);
+        itemInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addItem();
+        });
+        startBtn.addEventListener('click', startRanking);
+        choice1Btn.addEventListener('click', () => makeChoice(choice1Btn.textContent));
+        choice2Btn.addEventListener('click', () => makeChoice(choice2Btn.textContent));
+        newRankingBtn.addEventListener('click', resetApp);
+        saveResultsBtn.addEventListener('click', saveResults);
+        loadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', loadList);
+        saveNameBtn.addEventListener('click', saveListName);
+
+        // Core Functions
+        function addItem() {
+            const item = itemInput.value.trim();
+            
+            if (!item) {
+                showError("Please enter an item");
+                return;
+            }
+            
+            if (items.includes(item)) {
+                showError("Item already exists");
+                return;
+            }
+            
+            items.push(item);
+            itemInput.value = '';
+            errorMessage.textContent = '';
+            renderItemsList();
+            startBtn.disabled = items.length < 2;
+            
+            if (originalItems.length > 0 && items.length > originalItems.length) {
+                const newItemsCount = items.length - originalItems.length;
+                newItemsNotice.textContent = `${newItemsCount} new item(s) added - will only rank new combinations`;
+            }
+        }
+
+        function startRanking() {
+            if (items.length < 2) return;
+            
+            items.forEach(item => {
+                if (!rankings[item]) {
+                    rankings[item] = { wins: 0, losses: 0 };
+                }
+            });
+            
+            remainingPairs = [];
+            const newItems = originalItems.length > 0 ? 
+                items.filter(item => !originalItems.includes(item)) : 
+                items;
+            
+            for (const newItem of newItems) {
+                for (const existingItem of items) {
+                    if (newItem !== existingItem) {
+                        const pair = [newItem, existingItem].sort();
+                        const alreadyCompared = comparisons.some(c => 
+                            c.pair.sort().join() === pair.join()
+                        );
+                        
+                        if (!alreadyCompared) {
+                            remainingPairs.push([newItem, existingItem]);
+                        }
+                    }
+                }
+            }
+            
+            if (remainingPairs.length === 0) {
+                showResults();
+                return;
+            }
+            
+            shuffleArray(remainingPairs);
+            setupScreen.style.display = 'none';
+            compareScreen.style.display = 'block';
+            showNextPair();
+        }
+
+        function makeChoice(selectedItem) {
+            const [item1, item2] = currentPair;
+            if (selectedItem === item1) {
+                rankings[item1].wins++;
+                rankings[item2].losses++;
+            } else {
+                rankings[item2].wins++;
+                rankings[item1].losses++;
+            }
+            
+            comparisons.push({
+                pair: currentPair,
+                choice: selectedItem,
+                timestamp: new Date()
+            });
+            
+            showNextPair();
+        }
+
+        function showNextPair() {
+            if (remainingPairs.length > 0) {
+                currentPair = remainingPairs.pop();
+                choice1Btn.textContent = currentPair[0];
+                choice2Btn.textContent = currentPair[1];
+                updateProgress();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            const sortedItems = items.slice().sort((a, b) => {
+                const scoreA = rankings[a] ? rankings[a].wins - rankings[a].losses : 0;
+                const scoreB = rankings[b] ? rankings[b].wins - rankings[b].losses : 0;
+                return scoreB - scoreA;
+            });
+            
+            resultsDiv.innerHTML = sortedItems.map((item, index) => 
+                `<div class="result-item">${index + 1}. ${item}</div>`
+            ).join('');
+            
+            compareScreen.style.display = 'none';
+            resultsScreen.style.display = 'block';
+        }
+
         function saveResults() {
             const data = {
-                listName: listName,  // Add list name to saved data
+                listName: listName,
                 items: items,
                 rankings: rankings,
                 comparisons: comparisons,
@@ -78,7 +335,104 @@
             URL.revokeObjectURL(url);
         }
 
-        // ... (keep all other existing functions exactly the same) ...
+        function loadList(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    originalItems = data.items || [];
+                    items = [...originalItems];
+                    rankings = data.rankings || {};
+                    comparisons = data.comparisons || [];
+                    listName = data.listName || "my-ranking";
+                    
+                    listNameInput.value = listName;
+                    renderItemsList();
+                    startBtn.disabled = items.length < 2;
+                    newItemsNotice.textContent = originalItems.length > 0 ? 
+                        `${originalItems.length} items loaded - add more if needed` : '';
+                    
+                    event.target.value = '';
+                } catch (error) {
+                    showError("Error loading file: " + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function saveListName() {
+            const newName = listNameInput.value.trim();
+            if (newName) {
+                listName = newName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+                alert(`List name set to: ${newName}`);
+            }
+        }
+
+        function resetApp() {
+            items = [];
+            originalItems = [];
+            comparisons = [];
+            remainingPairs = [];
+            rankings = {};
+            currentPair = null;
+            
+            itemInput.value = '';
+            errorMessage.textContent = '';
+            newItemsNotice.textContent = '';
+            itemsList.innerHTML = '';
+            startBtn.disabled = true;
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            
+            resultsScreen.style.display = 'none';
+            setupScreen.style.display = 'block';
+        }
+
+        // Helper Functions
+        function renderItemsList() {
+            itemsList.innerHTML = items.map((item, index) => `
+                <div class="item">
+                    <span>${index + 1}. ${item} ${originalItems.includes(item) ? '(loaded)' : ''}</span>
+                    <button onclick="removeItem(${index})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+        }
+
+        function updateProgress() {
+            const totalComparisons = remainingPairs.length + comparisons.length;
+            const completed = comparisons.length;
+            const percent = Math.round((completed / totalComparisons) * 100);
+            progressBar.style.width = `${percent}%`;
+            progressBar.textContent = `${percent}%`;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Global function for item removal
+        window.removeItem = function(index) {
+            const removedItem = items[index];
+            items.splice(index, 1);
+            
+            const originalIndex = originalItems.indexOf(removedItem);
+            if (originalIndex > -1) {
+                originalItems.splice(originalIndex, 1);
+            }
+            
+            renderItemsList();
+            startBtn.disabled = items.length < 2;
+        };
     });
     </script>
 </body>
