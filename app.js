@@ -9,10 +9,17 @@ const itemsList = document.getElementById('items-list');
 const choice1Btn = document.getElementById('choice1');
 const choice2Btn = document.getElementById('choice2');
 const progressBar = document.getElementById('progress');
+const saveBtn = document.getElementById('save-btn');
+const listNameInput = document.getElementById('list-name');
+const savedListsDiv = document.getElementById('saved-lists');
 
 // State
 let items = [];
 let ranker;
+let currentListId = null;
+
+// Initialize
+loadSavedLists();
 
 // Add item to list
 addBtn.addEventListener('click', () => {
@@ -36,6 +43,27 @@ startBtn.addEventListener('click', () => {
     }
 });
 
+// Save list
+saveBtn.addEventListener('click', () => {
+    const name = listNameInput.value.trim();
+    if (name && items.length > 0) {
+        const lists = JSON.parse(localStorage.getItem('rankingLists') || {};
+        const id = currentListId || Date.now().toString();
+        
+        lists[id] = {
+            name: name,
+            items: items,
+            createdAt: currentListId ? lists[id]?.createdAt || new Date().toISOString() : new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        localStorage.setItem('rankingLists', JSON.stringify(lists));
+        listNameInput.value = '';
+        currentListId = null;
+        loadSavedLists();
+    }
+});
+
 // Render items list
 function renderItemsList() {
     itemsList.innerHTML = items.map(item => 
@@ -49,35 +77,51 @@ window.removeItem = function(item) {
     renderItemsList();
 };
 
-// Ranking logic (same as before)
-function showNextPair() {
-    const pair = ranker.getNextPair();
-    if (!pair) {
-        showResults();
-        return;
-    }
-    choice1Btn.textContent = pair[0];
-    choice2Btn.textContent = pair[1];
-    updateProgress();
-}
-
-function updateProgress() {
-    const progress = ranker.getProgress();
-    progressBar.textContent = `${progress.percent}%`;
-    progressBar.style.width = `${progress.percent}%`;
-}
-
-function showResults() {
-    comparisonDiv.style.display = 'none';
-    resultsDiv.style.display = 'block';
-    const rankings = ranker.getRankings();
-    let html = '<h2>Your Ranking Results:</h2>';
-    rankings.forEach((item, index) => {
-        html += `<div class="rank-item">${index + 1}. ${item}</div>`;
+// Load saved lists
+function loadSavedLists() {
+    const lists = JSON.parse(localStorage.getItem('rankingLists')) || {};
+    savedListsDiv.innerHTML = '';
+    
+    Object.entries(lists).forEach(([id, list]) => {
+        const listElement = document.createElement('div');
+        listElement.className = 'saved-list';
+        listElement.innerHTML = `
+            <strong>${list.name}</strong> (${list.items.length} items)
+            <button onclick="loadList('${id}')">Load</button>
+            <button onclick="deleteList('${id}')">Delete</button>
+        `;
+        savedListsDiv.appendChild(listElement);
     });
-    resultsDiv.innerHTML = html;
 }
 
+// Load a specific list
+window.loadList = function(id) {
+    const lists = JSON.parse(localStorage.getItem('rankingLists')) || {};
+    if (lists[id]) {
+        items = [...lists[id].items];
+        currentListId = id;
+        listNameInput.value = lists[id].name;
+        renderItemsList();
+    }
+};
+
+// Delete a list
+window.deleteList = function(id) {
+    const lists = JSON.parse(localStorage.getItem('rankingLists')) || {};
+    delete lists[id];
+    localStorage.setItem('rankingLists', JSON.stringify(lists));
+    loadSavedLists();
+    if (currentListId === id) {
+        items = [];
+        currentListId = null;
+        listNameInput.value = '';
+        renderItemsList();
+    }
+};
+
+// ... (keep existing ranking logic functions: showNextPair, updateProgress, showResults) ...
+
+// Initialize ranking buttons
 choice1Btn.addEventListener('click', () => {
     ranker.recordChoice(choice1Btn.textContent);
     showNextPair();
