@@ -42,6 +42,7 @@
             margin: 5px 0;
             background: #f5f5f5;
             border-radius: 4px;
+            align-items: center;
         }
         .choice-btn {
             padding: 15px 25px;
@@ -109,6 +110,17 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        .rank-input {
+            width: 40px;
+            margin-left: 10px;
+            text-align: center;
+            padding: 5px;
+        }
+        #apply-ranks-btn {
+            margin-top: 10px;
+            background: #34A853;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -130,6 +142,7 @@
         <div id="error-message" style="color:red;min-height:20px;"></div>
         <div id="items-list"></div>
         <div id="new-items-notice"></div>
+        <button id="apply-ranks-btn">Apply Manual Rankings</button>
         <button id="start-btn" disabled>Start Ranking</button>
         
         <div class="save-load-section">
@@ -158,6 +171,7 @@
         <button id="new-ranking-btn">Start New Ranking</button>
     </div>
 
+    <script src="pairwise-ranker.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // DOM Elements
@@ -180,6 +194,7 @@
         const newItemsNotice = document.getElementById('new-items-notice');
         const listNameInput = document.getElementById('list-name-input');
         const saveNameBtn = document.getElementById('save-name-btn');
+        const applyRanksBtn = document.getElementById('apply-ranks-btn');
 
         // App State
         let items = [];
@@ -203,6 +218,7 @@
         loadBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', loadList);
         saveNameBtn.addEventListener('click', saveListName);
+        applyRanksBtn.addEventListener('click', applyManualRanks);
 
         // Core Functions
         function addItem() {
@@ -228,6 +244,38 @@
                 const newItemsCount = items.length - originalItems.length;
                 newItemsNotice.textContent = `${newItemsCount} new item(s) added - will only rank new combinations`;
             }
+        }
+
+        function applyManualRanks() {
+            const rankInputs = document.querySelectorAll('.rank-input');
+            const newItems = [];
+            const rankMap = {};
+            
+            // Validate all inputs first
+            for (const input of rankInputs) {
+                const desiredRank = parseInt(input.value);
+                if (isNaN(desiredRank) {
+                    showError("Please enter valid numbers for all ranks");
+                    return;
+                }
+                if (desiredRank < 1 || desiredRank > items.length) {
+                    showError(`Ranks must be between 1 and ${items.length}`);
+                    return;
+                }
+                rankMap[input.dataset.item] = desiredRank;
+            }
+            
+            // Check for duplicate ranks
+            const rankValues = Object.values(rankMap);
+            if (new Set(rankValues).size !== rankValues.length) {
+                showError("Duplicate ranks detected");
+                return;
+            }
+            
+            // Sort items based on manual ranks
+            items.sort((a, b) => rankMap[a] - rankMap[b]);
+            renderItemsList();
+            errorMessage.textContent = '';
         }
 
         function startRanking() {
@@ -350,7 +398,7 @@
                     listName = data.listName || "my-ranking";
                     
                     listNameInput.value = listName;
-                    renderItemsList();
+                    renderItemsListWithRankInputs();
                     startBtn.disabled = items.length < 2;
                     newItemsNotice.textContent = originalItems.length > 0 ? 
                         `${originalItems.length} items loaded - add more if needed` : '';
@@ -361,6 +409,17 @@
                 }
             };
             reader.readAsText(file);
+        }
+
+        function renderItemsListWithRankInputs() {
+            itemsList.innerHTML = items.map((item, index) => `
+                <div class="item">
+                    <span>${index + 1}. ${item} ${originalItems.includes(item) ? '(loaded)' : ''}</span>
+                    <input type="number" class="rank-input" min="1" max="${items.length}" 
+                           value="${index + 1}" data-item="${item}">
+                    <button onclick="removeItem(${index})">×</button>
+                </div>
+            `).join('');
         }
 
         function saveListName() {
