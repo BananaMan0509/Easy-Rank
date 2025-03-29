@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movie Ranking App</title>
+    <title>Custom Ranking App</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,6 +26,23 @@
             border-radius: 5px;
             width: 300px;
         }
+        #setup {
+            margin-bottom: 20px;
+        }
+        #item-input {
+            padding: 10px;
+            width: 300px;
+        }
+        #add-btn, #start-btn {
+            padding: 10px 20px;
+            margin: 5px;
+        }
+        #items-list {
+            margin: 15px 0;
+            min-height: 100px;
+            border: 1px dashed #ccc;
+            padding: 10px;
+        }
         .progress-bar {
             width: 100%;
             background-color: #ddd;
@@ -41,10 +58,8 @@
             color: white;
             width: 0%;
         }
-        #results {
+        #comparison, #results {
             display: none;
-            text-align: left;
-            margin-top: 30px;
         }
         .rank-item {
             padding: 10px;
@@ -55,15 +70,26 @@
     </style>
 </head>
 <body>
-    <h1>Movie Ranking App</h1>
+    <h1>Custom Ranking App</h1>
+    
+    <div id="setup">
+        <h2>Enter Items to Rank</h2>
+        <input type="text" id="item-input" placeholder="Enter an item">
+        <button id="add-btn">Add Item</button>
+        <button id="start-btn">Start Ranking</button>
+        <div id="items-list"></div>
+    </div>
+    
     <div id="comparison">
         <h2>Which do you prefer?</h2>
         <button id="choice1" class="choice-btn"></button>
         <button id="choice2" class="choice-btn"></button>
     </div>
+    
     <div class="progress-bar">
         <div id="progress" class="progress">0%</div>
     </div>
+    
     <div id="results"></div>
 
     <script src="pairwise-ranker.js"></script>
