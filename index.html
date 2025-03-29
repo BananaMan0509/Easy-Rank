@@ -94,6 +94,11 @@
             display: inline-block;
             margin: 5px;
         }
+        #new-items-notice {
+            color: #E8710A;
+            margin: 10px 0;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -107,6 +112,7 @@
         </div>
         <div id="error-message" style="color:red;min-height:20px;"></div>
         <div id="items-list"></div>
+        <div id="new-items-notice"></div>
         <button id="start-btn" disabled>Start Ranking</button>
         
         <div class="save-load-section">
@@ -154,9 +160,11 @@
         const saveResultsBtn = document.getElementById('save-results-btn');
         const loadBtn = document.getElementById('load-btn');
         const fileInput = document.getElementById('file-input');
+        const newItemsNotice = document.getElementById('new-items-notice');
 
         // App State
         let items = [];
+        let originalItems = []; // Track originally loaded items
         let comparisons = [];
         let remainingPairs = [];
         let rankings = {};
@@ -194,23 +202,50 @@
             errorMessage.textContent = '';
             renderItemsList();
             startBtn.disabled = items.length < 2;
+            
+            // Show notice if we have new items added to a loaded list
+            if (originalItems.length > 0 && items.length > originalItems.length) {
+                const newItemsCount = items.length - originalItems.length;
+                newItemsNotice.textContent = `${newItemsCount} new item(s) added - will only rank new combinations`;
+            }
         }
 
         function startRanking() {
             if (items.length < 2) return;
             
-            // Initialize rankings
-            rankings = {};
+            // Initialize rankings for new items
             items.forEach(item => {
-                rankings[item] = { wins: 0, losses: 0 };
+                if (!rankings[item]) {
+                    rankings[item] = { wins: 0, losses: 0 };
+                }
             });
             
-            // Generate all possible pairs
+            // Generate only NEW pairs (new items vs all items)
             remainingPairs = [];
-            for (let i = 0; i < items.length; i++) {
-                for (let j = i + 1; j < items.length; j++) {
-                    remainingPairs.push([items[i], items[j]]);
+            const newItems = originalItems.length > 0 ? 
+                items.filter(item => !originalItems.includes(item)) : 
+                items;
+            
+            for (const newItem of newItems) {
+                for (const existingItem of items) {
+                    if (newItem !== existingItem) {
+                        // Only add pairs we haven't compared before
+                        const pair = [newItem, existingItem].sort();
+                        const alreadyCompared = comparisons.some(c => 
+                            c.pair.sort().join() === pair.join()
+                        );
+                        
+                        if (!alreadyCompared) {
+                            remainingPairs.push([newItem, existingItem]);
+                        }
+                    }
                 }
+            }
+            
+            // If no new pairs needed (all loaded from save), just show results
+            if (remainingPairs.length === 0) {
+                showResults();
+                return;
             }
             
             // Shuffle pairs for randomness
@@ -260,8 +295,8 @@
         function showResults() {
             // Calculate final rankings
             const sortedItems = items.slice().sort((a, b) => {
-                const scoreA = rankings[a].wins - rankings[a].losses;
-                const scoreB = rankings[b].wins - rankings[b].losses;
+                const scoreA = rankings[a] ? rankings[a].wins - rankings[a].losses : 0;
+                const scoreB = rankings[b] ? rankings[b].wins - rankings[b].losses : 0;
                 return scoreB - scoreA;
             });
             
@@ -301,13 +336,16 @@
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
-                    items = data.items || [];
+                    originalItems = data.items || [];
+                    items = [...originalItems]; // Start with original items
                     rankings = data.rankings || {};
                     comparisons = data.comparisons || [];
                     
                     // Reset the UI with loaded data
                     renderItemsList();
                     startBtn.disabled = items.length < 2;
+                    newItemsNotice.textContent = originalItems.length > 0 ? 
+                        `${originalItems.length} items loaded - add more if needed` : '';
                     
                     // Clear the file input
                     event.target.value = '';
@@ -320,6 +358,7 @@
 
         function resetApp() {
             items = [];
+            originalItems = [];
             comparisons = [];
             remainingPairs = [];
             rankings = {};
@@ -327,6 +366,7 @@
             
             itemInput.value = '';
             errorMessage.textContent = '';
+            newItemsNotice.textContent = '';
             itemsList.innerHTML = '';
             startBtn.disabled = true;
             progressBar.style.width = '0%';
@@ -340,7 +380,7 @@
         function renderItemsList() {
             itemsList.innerHTML = items.map((item, index) => `
                 <div class="item">
-                    <span>${index + 1}. ${item}</span>
+                    <span>${index + 1}. ${item} ${originalItems.includes(item) ? '(loaded)' : ''}</span>
                     <button onclick="removeItem(${index})">×</button>
                 </div>
             `).join('');
@@ -351,8 +391,8 @@
         }
 
         function updateProgress() {
-            const totalComparisons = (items.length * (items.length - 1)) / 2;
-            const completed = totalComparisons - remainingPairs.length;
+            const totalComparisons = remainingPairs.length + comparisons.length;
+            const completed = comparisons.length;
             const percent = Math.round((completed / totalComparisons) * 100);
             progressBar.style.width = `${percent}%`;
             progressBar.textContent = `${percent}%`;
@@ -367,7 +407,15 @@
 
         // Global function for item removal
         window.removeItem = function(index) {
+            const removedItem = items[index];
             items.splice(index, 1);
+            
+            // If it was an original item, remove from original list too
+            const originalIndex = originalItems.indexOf(removedItem);
+            if (originalIndex > -1) {
+                originalItems.splice(originalIndex, 1);
+            }
+            
             renderItemsList();
             startBtn.disabled = items.length < 2;
         };
