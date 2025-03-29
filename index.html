@@ -3,218 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Ranking App</title>
+    <title>Ranking App</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-        }
-        /* ... (keep previous styles) ... */
-        .ranking-group {
-            margin: 15px 0;
-            padding: 10px;
-            background: #f9f9f9;
-            border-radius: 5px;
-        }
-        .ranking-controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 10px 0;
-        }
-        .rank-input {
-            width: 60px;
-            padding: 5px;
-            text-align: center;
+        /* ... (keep all existing styles) ... */
+        .list-name-section {
+            margin-bottom: 15px;
         }
         #list-name-input {
             padding: 8px;
             width: 200px;
             margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
     </style>
 </head>
 <body>
     <!-- Setup Screen -->
     <div id="setup-screen">
-        <h1>Smart Ranking App</h1>
-        <div>
-            <input type="text" id="list-name-input" placeholder="List name">
-            <button id="save-name-btn">Set Name</button>
+        <h1>Ranking App</h1>
+        
+        <!-- New List Name Section -->
+        <div class="list-name-section">
+            <input type="text" id="list-name-input" placeholder="My Ranking List">
+            <button id="save-name-btn">Set List Name</button>
         </div>
+        
         <h2>Enter Items to Rank</h2>
         <div>
             <input type="text" id="item-input" placeholder="Enter an item (press Enter)">
             <button id="add-btn">Add Item</button>
         </div>
-        <div id="error-message" style="color:red;min-height:20px;"></div>
-        <div id="items-list"></div>
-        
-        <!-- New Ranking Controls -->
-        <div id="ranking-controls-section" style="display:none;">
-            <h3>Rank New Items Against:</h3>
-            <div class="ranking-group">
-                <label>Top <input type="number" id="top-rank" class="rank-input" min="1" value="5"> items</label>
-                <div class="ranking-controls">
-                    <button id="rank-top-btn">Rank Against Top</button>
-                </div>
-            </div>
-            <div class="ranking-group">
-                <label>Specific range: <input type="number" id="from-rank" class="rank-input" min="1" placeholder="From"> to 
-                <input type="number" id="to-rank" class="rank-input" min="1" placeholder="To"></label>
-                <div class="ranking-controls">
-                    <button id="rank-range-btn">Rank Against Range</button>
-                </div>
-            </div>
-            <button id="rank-all-btn">Rank Against All Items</button>
-        </div>
-        
-        <div class="save-load-section">
-            <button id="load-btn" class="file-label">Load Saved List</button>
-            <input type="file" id="file-input" class="file-input" accept=".json">
-        </div>
+        <!-- ... (rest of the existing HTML remains the same) ... -->
     </div>
-
-    <!-- ... (keep comparison and results screens) ... -->
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ... (keep previous DOM elements and basic state) ...
-
-        // New DOM Elements
+        // ... (keep all existing variable declarations) ...
+        
+        // Add new elements
         const listNameInput = document.getElementById('list-name-input');
         const saveNameBtn = document.getElementById('save-name-btn');
-        const rankingControlsSection = document.getElementById('ranking-controls-section');
-        const topRankInput = document.getElementById('top-rank');
-        const fromRankInput = document.getElementById('from-rank');
-        const toRankInput = document.getElementById('to-rank');
-        const rankTopBtn = document.getElementById('rank-top-btn');
-        const rankRangeBtn = document.getElementById('rank-range-btn');
-        const rankAllBtn = document.getElementById('rank-all-btn');
-
-        // New State
+        
+        // Add to App State
         let listName = "my-ranking";
-        let newItems = [];
-        let sortedItems = [];
-
-        // New Event Listeners
-        saveNameBtn.addEventListener('click', saveListName);
-        rankTopBtn.addEventListener('click', () => startRanking('top'));
-        rankRangeBtn.addEventListener('click', () => startRanking('range'));
-        rankAllBtn.addEventListener('click', () => startRanking('all'));
-
-        // New Functions
-        function saveListName() {
-            listName = listNameInput.value.trim() || "my-ranking";
-            alert(`List name set to: ${listName}`);
-        }
-
-        function startRanking(mode) {
-            if (items.length < 2) return;
-            
-            // Get current sorted items based on existing rankings
-            sortedItems = Object.keys(rankings).sort((a, b) => {
-                const scoreA = rankings[a].wins - rankings[a].losses;
-                const scoreB = rankings[b].wins - rankings[b].losses;
-                return scoreB - scoreA;
-            });
-            
-            // Get new items that need ranking
-            newItems = originalItems.length > 0 ? 
-                items.filter(item => !originalItems.includes(item)) : 
-                items;
-            
-            // Generate pairs based on selected mode
-            remainingPairs = [];
-            
-            if (mode === 'top') {
-                const topN = parseInt(topRankInput.value) || 5;
-                const targets = sortedItems.slice(0, Math.min(topN, sortedItems.length));
-                
-                for (const newItem of newItems) {
-                    for (const target of targets) {
-                        if (newItem !== target) {
-                            remainingPairs.push([newItem, target]);
-                        }
-                    }
-                }
-            } 
-            else if (mode === 'range') {
-                const from = parseInt(fromRankInput.value) || 1;
-                const to = parseInt(toRankInput.value) || sortedItems.length;
-                const targets = sortedItems.slice(from-1, to);
-                
-                for (const newItem of newItems) {
-                    for (const target of targets) {
-                        if (newItem !== target) {
-                            remainingPairs.push([newItem, target]);
-                        }
-                    }
-                }
+        
+        // New Event Listener
+        saveNameBtn.addEventListener('click', function() {
+            const newName = listNameInput.value.trim();
+            if (newName) {
+                listName = newName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+                alert(`List name set to: ${newName}`);
             }
-            else { // 'all'
-                for (const newItem of newItems) {
-                    for (const existingItem of items) {
-                        if (newItem !== existingItem) {
-                            remainingPairs.push([newItem, existingItem]);
-                        }
-                    }
-                }
-            }
-            
-            // Remove already compared pairs
-            remainingPairs = remainingPairs.filter(pair => {
-                return !comparisons.some(c => 
-                    (c.pair[0] === pair[0] && c.pair[1] === pair[1]) ||
-                    (c.pair[0] === pair[1] && c.pair[1] === pair[0])
-                );
-            });
-            
-            if (remainingPairs.length === 0) {
-                showResults();
-                return;
-            }
-            
-            shuffleArray(remainingPairs);
-            setupScreen.style.display = 'none';
-            compareScreen.style.display = 'block';
-            showNextPair();
-        }
+        });
 
-        function loadList(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    originalItems = data.items || [];
-                    items = [...originalItems];
-                    rankings = data.rankings || {};
-                    comparisons = data.comparisons || [];
-                    listName = data.listName || "my-ranking";
-                    
-                    listNameInput.value = listName;
-                    renderItemsList();
-                    rankingControlsSection.style.display = items.length > 0 ? 'block' : 'none';
-                    newItemsNotice.textContent = originalItems.length > 0 ? 
-                        `${originalItems.length} items loaded` : '';
-                    
-                    event.target.value = '';
-                } catch (error) {
-                    showError("Error loading file: " + error.message);
-                }
-            };
-            reader.readAsText(file);
-        }
-
+        // Modify the saveResults function
         function saveResults() {
             const data = {
-                listName: listName,
+                listName: listName,  // Add list name to saved data
                 items: items,
                 rankings: rankings,
                 comparisons: comparisons,
@@ -225,42 +71,14 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${listName.replace(/[^a-z0-9]/gi, '_')}.json`;
+            a.download = `${listName}-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
 
-        // ... (keep other existing functions) ...
-
-        function addItem() {
-            const item = itemInput.value.trim();
-            
-            if (!item) {
-                showError("Please enter an item");
-                return;
-            }
-            
-            if (items.includes(item)) {
-                showError("Item already exists");
-                return;
-            }
-            
-            items.push(item);
-            itemInput.value = '';
-            errorMessage.textContent = '';
-            renderItemsList();
-            
-            // Show ranking controls when items exist
-            rankingControlsSection.style.display = items.length > 0 ? 'block' : 'none';
-            
-            if (originalItems.length > 0 && items.length > originalItems.length) {
-                newItemsNotice.textContent = `${items.length - originalItems.length} new item(s) added`;
-            }
-        }
-
-        // ... (keep remaining code) ...
+        // ... (keep all other existing functions exactly the same) ...
     });
     </script>
 </body>
