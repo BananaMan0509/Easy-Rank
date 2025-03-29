@@ -3,175 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ranking App</title>
+    <title>Easy Rank - Simple Ranking Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --gray: #adb5bd;
+            --light-gray: #e9ecef;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f7ff;
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            padding: 30px;
+        }
+        
+        h1, h2, h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
             text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
         }
-        #setup-screen, #compare-screen {
-            transition: all 0.3s ease;
+        
+        h1::after {
+            content: "";
+            display: block;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            margin: 10px auto;
+            border-radius: 2px;
         }
+        
+        #setup-screen, #compare-screen, #results-screen {
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
         #compare-screen, #results-screen {
             display: none;
         }
+        
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
         #item-input {
-            padding: 10px;
-            width: 300px;
-            margin-right: 10px;
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
         }
+        
+        #item-input:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+        
         button {
-            padding: 10px 15px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
-            margin: 5px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
+        
+        button i {
+            margin-right: 8px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: var(--light-gray);
+            color: var(--dark);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+            transform: translateY(-2px);
+        }
+        
+        .btn-accent {
+            background-color: var(--accent);
+            color: white;
+        }
+        
+        .btn-accent:hover {
+            background-color: #3a86ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 149, 239, 0.3);
+        }
+        
         #items-list {
-            margin: 15px auto;
-            min-height: 50px;
-            border: 1px dashed #ccc;
-            padding: 10px;
-            max-width: 500px;
+            margin: 20px 0;
+            border-radius: 8px;
+            overflow: hidden;
         }
+        
         .item {
             display: flex;
             justify-content: space-between;
-            padding: 8px;
-            margin: 5px 0;
-            background: #f5f5f5;
-            border-radius: 4px;
             align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: var(--light);
+            border-radius: 8px;
+            transition: all 0.3s;
         }
-        .choice-btn {
-            padding: 15px 25px;
-            font-size: 18px;
-            margin: 10px;
-            min-width: 200px;
-            background: #4285F4;
-            color: white;
+        
+        .item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .item-remove {
+            background: none;
             border: none;
-            border-radius: 4px;
+            color: var(--gray);
+            font-size: 20px;
             cursor: pointer;
+            padding: 0 5px;
+            transition: all 0.2s;
         }
+        
+        .item-remove:hover {
+            color: var(--warning);
+            transform: scale(1.2);
+        }
+        
+        .choice-btn {
+            padding: 20px 30px;
+            font-size: 18px;
+            font-weight: 500;
+            margin: 15px;
+            min-width: 220px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .choice-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
         .progress-container {
             width: 100%;
-            background-color: #f1f1f1;
-            border-radius: 4px;
-            margin: 20px 0;
+            background-color: var(--light-gray);
+            border-radius: 12px;
+            margin: 30px 0;
+            overflow: hidden;
         }
+        
         #progress-bar {
-            height: 30px;
-            background-color: #34A853;
-            border-radius: 4px;
+            height: 20px;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            border-radius: 12px;
             width: 0%;
-            text-align: center;
-            line-height: 30px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
             color: white;
         }
-        #results {
-            margin-top: 20px;
-        }
+        
         .result-item {
-            padding: 10px;
-            margin: 5px 0;
-            background: #f8f8f8;
-            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            background: var(--light);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
+        
+        .result-item::before {
+            content: attr(data-rank);
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: 600;
+        }
+        
         .save-load-section {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--light-gray);
         }
+        
         .file-input {
             display: none;
         }
+        
         .file-label {
-            padding: 8px 15px;
-            background: #f1f1f1;
-            border-radius: 4px;
+            padding: 10px 15px;
+            background: var(--light-gray);
+            border-radius: 8px;
             cursor: pointer;
-            display: inline-block;
-            margin: 5px;
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.3s;
         }
+        
+        .file-label:hover {
+            background: #dee2e6;
+        }
+        
+        #error-message {
+            color: var(--warning);
+            min-height: 20px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
         #new-items-notice {
-            color: #E8710A;
-            margin: 10px 0;
-            font-weight: bold;
+            color: var(--accent);
+            margin: 15px 0;
+            font-weight: 500;
+            padding: 10px;
+            background: rgba(72, 149, 239, 0.1);
+            border-radius: 8px;
         }
+        
         .list-name-section {
-            margin-bottom: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        
         #list-name-input {
-            padding: 8px;
-            width: 200px;
+            padding: 12px 15px;
+            width: 250px;
             margin-right: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px;
+            font-size: 16px;
         }
-        .rank-input {
-            width: 40px;
-            margin-left: 10px;
-            text-align: center;
-            padding: 5px;
+        
+        .compare-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        #apply-ranks-btn {
-            margin-top: 10px;
-            background: #34A853;
-            color: white;
+        
+        .choices-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                border-radius: 0;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            #item-input {
+                margin-bottom: 10px;
+                margin-right: 0;
+            }
+            
+            .choices-container {
+                flex-direction: column;
+            }
+            
+            .choice-btn {
+                min-width: 100%;
+                margin: 10px 0;
+            }
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <!-- Setup Screen -->
-    <div id="setup-screen">
-        <h1>Ranking App</h1>
-        
-        <!-- New List Name Section -->
-        <div class="list-name-section">
-            <input type="text" id="list-name-input" placeholder="My Ranking List">
-            <button id="save-name-btn">Set List Name</button>
+    <div class="container">
+        <!-- Setup Screen -->
+        <div id="setup-screen">
+            <h1><i class="fas fa-trophy"></i> Easy Rank</h1>
+            
+            <div class="list-name-section">
+                <input type="text" id="list-name-input" placeholder="My Ranking List">
+                <button id="save-name-btn" class="btn-secondary"><i class="fas fa-save"></i> Save Name</button>
+            </div>
+            
+            <h2><i class="fas fa-list-ol"></i> Items to Rank</h2>
+            <div class="input-group">
+                <input type="text" id="item-input" placeholder="Enter an item (press Enter)">
+                <button id="add-btn" class="btn-primary"><i class="fas fa-plus"></i> Add</button>
+            </div>
+            <div id="error-message"></div>
+            <div id="items-list"></div>
+            <div id="new-items-notice"></div>
+            <button id="start-btn" class="btn-accent" disabled><i class="fas fa-play"></i> Start Ranking</button>
+            
+            <div class="save-load-section">
+                <button id="load-btn" class="file-label"><i class="fas fa-folder-open"></i> Load List</button>
+                <input type="file" id="file-input" class="file-input" accept=".json">
+            </div>
         </div>
-        
-        <h2>Enter Items to Rank</h2>
-        <div>
-            <input type="text" id="item-input" placeholder="Enter an item (press Enter)">
-            <button id="add-btn">Add Item</button>
+
+        <!-- Comparison Screen -->
+        <div id="compare-screen">
+            <h1><i class="fas fa-question-circle"></i> Which do you prefer?</h1>
+            <div class="compare-container">
+                <div class="choices-container">
+                    <button id="choice1" class="choice-btn btn-primary"></button>
+                    <button id="choice2" class="choice-btn btn-primary"></button>
+                </div>
+                <div class="progress-container">
+                    <div id="progress-bar">0%</div>
+                </div>
+            </div>
         </div>
-        <div id="error-message" style="color:red;min-height:20px;"></div>
-        <div id="items-list"></div>
-        <div id="new-items-notice"></div>
-        <button id="apply-ranks-btn">Apply Manual Rankings</button>
-        <button id="start-btn" disabled>Start Ranking</button>
-        
-        <div class="save-load-section">
-            <button id="load-btn" class="file-label">Load Saved List</button>
-            <input type="file" id="file-input" class="file-input" accept=".json">
+
+        <!-- Results Screen -->
+        <div id="results-screen">
+            <h1><i class="fas fa-poll"></i> Your Ranking Results</h1>
+            <div id="results"></div>
+            <div class="save-load-section">
+                <button id="save-results-btn" class="btn-primary"><i class="fas fa-save"></i> Save Ranking</button>
+                <button id="new-ranking-btn" class="btn-secondary"><i class="fas fa-redo"></i> Start New</button>
+            </div>
         </div>
     </div>
 
-    <!-- Comparison Screen -->
-    <div id="compare-screen">
-        <h1>Which do you prefer?</h1>
-        <div>
-            <button id="choice1" class="choice-btn"></button>
-            <button id="choice2" class="choice-btn"></button>
-        </div>
-        <div class="progress-container">
-            <div id="progress-bar">0%</div>
-        </div>
-    </div>
-
-    <!-- Results Screen -->
-    <div id="results-screen">
-        <h1>Your Ranking Results</h1>
-        <div id="results"></div>
-        <button id="save-results-btn">Save This Ranking</button>
-        <button id="new-ranking-btn">Start New Ranking</button>
-    </div>
-
-    <script src="pairwise-ranker.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // DOM Elements
@@ -194,11 +416,10 @@
         const newItemsNotice = document.getElementById('new-items-notice');
         const listNameInput = document.getElementById('list-name-input');
         const saveNameBtn = document.getElementById('save-name-btn');
-        const applyRanksBtn = document.getElementById('apply-ranks-btn');
 
         // App State
         let items = [];
-        let originalItems = [];
+        let rankedItems = [];
         let comparisons = [];
         let remainingPairs = [];
         let rankings = {};
@@ -218,7 +439,6 @@
         loadBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', loadList);
         saveNameBtn.addEventListener('click', saveListName);
-        applyRanksBtn.addEventListener('click', applyManualRanks);
 
         // Core Functions
         function addItem() {
@@ -240,47 +460,15 @@
             renderItemsList();
             startBtn.disabled = items.length < 2;
             
-            if (originalItems.length > 0 && items.length > originalItems.length) {
-                const newItemsCount = items.length - originalItems.length;
-                newItemsNotice.textContent = `${newItemsCount} new item(s) added - will only rank new combinations`;
+            if (rankedItems.length > 0) {
+                newItemsNotice.textContent = `${items.length - rankedItems.length} new item(s) added - will only rank new combinations`;
             }
-        }
-
-        function applyManualRanks() {
-            const rankInputs = document.querySelectorAll('.rank-input');
-            const newItems = [];
-            const rankMap = {};
-            
-            // Validate all inputs first
-            for (const input of rankInputs) {
-                const desiredRank = parseInt(input.value);
-                if (isNaN(desiredRank) {
-                    showError("Please enter valid numbers for all ranks");
-                    return;
-                }
-                if (desiredRank < 1 || desiredRank > items.length) {
-                    showError(`Ranks must be between 1 and ${items.length}`);
-                    return;
-                }
-                rankMap[input.dataset.item] = desiredRank;
-            }
-            
-            // Check for duplicate ranks
-            const rankValues = Object.values(rankMap);
-            if (new Set(rankValues).size !== rankValues.length) {
-                showError("Duplicate ranks detected");
-                return;
-            }
-            
-            // Sort items based on manual ranks
-            items.sort((a, b) => rankMap[a] - rankMap[b]);
-            renderItemsList();
-            errorMessage.textContent = '';
         }
 
         function startRanking() {
             if (items.length < 2) return;
             
+            // Initialize rankings for new items
             items.forEach(item => {
                 if (!rankings[item]) {
                     rankings[item] = { wins: 0, losses: 0 };
@@ -288,13 +476,13 @@
             });
             
             remainingPairs = [];
-            const newItems = originalItems.length > 0 ? 
-                items.filter(item => !originalItems.includes(item)) : 
-                items;
             
-            for (const newItem of newItems) {
-                for (const existingItem of items) {
-                    if (newItem !== existingItem) {
+            // If we have a previous ranking, only compare new items with existing ones
+            if (rankedItems.length > 0) {
+                const newItems = items.filter(item => !rankedItems.includes(item));
+                
+                for (const newItem of newItems) {
+                    for (const existingItem of rankedItems) {
                         const pair = [newItem, existingItem].sort();
                         const alreadyCompared = comparisons.some(c => 
                             c.pair.sort().join() === pair.join()
@@ -302,6 +490,34 @@
                         
                         if (!alreadyCompared) {
                             remainingPairs.push([newItem, existingItem]);
+                        }
+                    }
+                }
+                
+                // Also compare new items with each other
+                for (let i = 0; i < newItems.length; i++) {
+                    for (let j = i + 1; j < newItems.length; j++) {
+                        const pair = [newItems[i], newItems[j]].sort();
+                        const alreadyCompared = comparisons.some(c => 
+                            c.pair.sort().join() === pair.join()
+                        );
+                        
+                        if (!alreadyCompared) {
+                            remainingPairs.push([newItems[i], newItems[j]]);
+                        }
+                    }
+                }
+            } else {
+                // First time ranking - compare all items
+                for (let i = 0; i < items.length; i++) {
+                    for (let j = i + 1; j < items.length; j++) {
+                        const pair = [items[i], items[j]].sort();
+                        const alreadyCompared = comparisons.some(c => 
+                            c.pair.sort().join() === pair.join()
+                        );
+                        
+                        if (!alreadyCompared) {
+                            remainingPairs.push([items[i], items[j]]);
                         }
                     }
                 }
@@ -349,14 +565,18 @@
         }
 
         function showResults() {
+            // Sort items based on their ranking score
             const sortedItems = items.slice().sort((a, b) => {
                 const scoreA = rankings[a] ? rankings[a].wins - rankings[a].losses : 0;
                 const scoreB = rankings[b] ? rankings[b].wins - rankings[b].losses : 0;
                 return scoreB - scoreA;
             });
             
-            resultsDiv.innerHTML = sortedItems.map((item, index) => 
-                `<div class="result-item">${index + 1}. ${item}</div>`
+            // Update rankedItems to the new sorted order
+            rankedItems = sortedItems;
+            
+            resultsDiv.innerHTML = rankedItems.map((item, index) => 
+                `<div class="result-item" data-rank="${index + 1}">${item}</div>`
             ).join('');
             
             compareScreen.style.display = 'none';
@@ -364,9 +584,11 @@
         }
 
         function saveResults() {
+            // Save the current ranked order of items
             const data = {
                 listName: listName,
-                items: items,
+                items: rankedItems, // Save the ranked order
+                originalItems: items, // Save all items (including new ones not yet ranked)
                 rankings: rankings,
                 comparisons: comparisons,
                 timestamp: new Date().toISOString()
@@ -391,17 +613,25 @@
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
-                    originalItems = data.items || [];
-                    items = [...originalItems];
+                    
+                    // Load the ranked items in their saved order
+                    rankedItems = data.items || [];
+                    // Load all items (including any that might not have been ranked yet)
+                    items = data.originalItems || data.items || [];
                     rankings = data.rankings || {};
                     comparisons = data.comparisons || [];
                     listName = data.listName || "my-ranking";
                     
                     listNameInput.value = listName;
-                    renderItemsListWithRankInputs();
+                    renderItemsList();
                     startBtn.disabled = items.length < 2;
-                    newItemsNotice.textContent = originalItems.length > 0 ? 
-                        `${originalItems.length} items loaded - add more if needed` : '';
+                    
+                    if (rankedItems.length > 0) {
+                        newItemsNotice.textContent = `Loaded ${rankedItems.length} ranked items`;
+                        if (items.length > rankedItems.length) {
+                            newItemsNotice.textContent += ` (${items.length - rankedItems.length} unranked items)`;
+                        }
+                    }
                     
                     event.target.value = '';
                 } catch (error) {
@@ -411,13 +641,11 @@
             reader.readAsText(file);
         }
 
-        function renderItemsListWithRankInputs() {
+        function renderItemsList() {
             itemsList.innerHTML = items.map((item, index) => `
                 <div class="item">
-                    <span>${index + 1}. ${item} ${originalItems.includes(item) ? '(loaded)' : ''}</span>
-                    <input type="number" class="rank-input" min="1" max="${items.length}" 
-                           value="${index + 1}" data-item="${item}">
-                    <button onclick="removeItem(${index})">×</button>
+                    <span>${item} ${rankedItems.includes(item) ? '<i class="fas fa-check-circle" style="color: #4cc9f0;"></i>' : ''}</span>
+                    <button class="item-remove" onclick="removeItem(${index})"><i class="fas fa-times"></i></button>
                 </div>
             `).join('');
         }
@@ -426,13 +654,16 @@
             const newName = listNameInput.value.trim();
             if (newName) {
                 listName = newName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-                alert(`List name set to: ${newName}`);
+                newItemsNotice.textContent = `List name saved as: ${newName}`;
+                setTimeout(() => {
+                    newItemsNotice.textContent = '';
+                }, 3000);
             }
         }
 
         function resetApp() {
             items = [];
-            originalItems = [];
+            rankedItems = [];
             comparisons = [];
             remainingPairs = [];
             rankings = {};
@@ -451,17 +682,11 @@
         }
 
         // Helper Functions
-        function renderItemsList() {
-            itemsList.innerHTML = items.map((item, index) => `
-                <div class="item">
-                    <span>${index + 1}. ${item} ${originalItems.includes(item) ? '(loaded)' : ''}</span>
-                    <button onclick="removeItem(${index})">×</button>
-                </div>
-            `).join('');
-        }
-
         function showError(message) {
             errorMessage.textContent = message;
+            setTimeout(() => {
+                errorMessage.textContent = '';
+            }, 3000);
         }
 
         function updateProgress() {
@@ -484,10 +709,16 @@
             const removedItem = items[index];
             items.splice(index, 1);
             
-            const originalIndex = originalItems.indexOf(removedItem);
-            if (originalIndex > -1) {
-                originalItems.splice(originalIndex, 1);
+            const rankedIndex = rankedItems.indexOf(removedItem);
+            if (rankedIndex > -1) {
+                rankedItems.splice(rankedIndex, 1);
             }
+            
+            // Remove from rankings and comparisons
+            delete rankings[removedItem];
+            comparisons = comparisons.filter(c => 
+                !c.pair.includes(removedItem)
+            );
             
             renderItemsList();
             startBtn.disabled = items.length < 2;
