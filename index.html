@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ranking App</title>
+    <title>Smart Ranking App</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -109,14 +109,29 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        .ranking-options {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .rank-option {
+            margin: 10px 0;
+        }
+        .rank-input {
+            width: 50px;
+            padding: 5px;
+            text-align: center;
+            margin: 0 5px;
+        }
     </style>
 </head>
 <body>
     <!-- Setup Screen -->
     <div id="setup-screen">
-        <h1>Ranking App</h1>
+        <h1>Smart Ranking App</h1>
         
-        <!-- New List Name Section -->
+        <!-- List Name Section -->
         <div class="list-name-section">
             <input type="text" id="list-name-input" placeholder="My Ranking List">
             <button id="save-name-btn">Set List Name</button>
@@ -130,7 +145,17 @@
         <div id="error-message" style="color:red;min-height:20px;"></div>
         <div id="items-list"></div>
         <div id="new-items-notice"></div>
-        <button id="start-btn" disabled>Start Ranking</button>
+        
+        <!-- Ranking Options (shown when loading existing list) -->
+        <div id="ranking-options" class="ranking-options" style="display:none;">
+            <h3>Rank New Items Against:</h3>
+            <div class="rank-option">
+                <button id="rank-top-btn">Top <input type="number" id="top-n-input" class="rank-input" min="1" value="5"> Items</button>
+            </div>
+            <div class="rank-option">
+                <button id="rank-all-btn">All Items</button>
+            </div>
+        </div>
         
         <div class="save-load-section">
             <button id="load-btn" class="file-label">Load Saved List</button>
@@ -152,7 +177,7 @@
 
     <!-- Results Screen -->
     <div id="results-screen">
-        <h1>Your Ranking Results</h1>
+        <h1 id="results-title">Your Ranking Results</h1>
         <div id="results"></div>
         <button id="save-results-btn">Save This Ranking</button>
         <button id="new-ranking-btn">Start New Ranking</button>
@@ -166,13 +191,13 @@
         const resultsScreen = document.getElementById('results-screen');
         const itemInput = document.getElementById('item-input');
         const addBtn = document.getElementById('add-btn');
-        const startBtn = document.getElementById('start-btn');
         const itemsList = document.getElementById('items-list');
         const errorMessage = document.getElementById('error-message');
         const choice1Btn = document.getElementById('choice1');
         const choice2Btn = document.getElementById('choice2');
         const progressBar = document.getElementById('progress-bar');
         const resultsDiv = document.getElementById('results');
+        const resultsTitle = document.getElementById('results-title');
         const newRankingBtn = document.getElementById('new-ranking-btn');
         const saveResultsBtn = document.getElementById('save-results-btn');
         const loadBtn = document.getElementById('load-btn');
@@ -180,6 +205,10 @@
         const newItemsNotice = document.getElementById('new-items-notice');
         const listNameInput = document.getElementById('list-name-input');
         const saveNameBtn = document.getElementById('save-name-btn');
+        const rankingOptions = document.getElementById('ranking-options');
+        const rankTopBtn = document.getElementById('rank-top-btn');
+        const rankAllBtn = document.getElementById('rank-all-btn');
+        const topNInput = document.getElementById('top-n-input');
 
         // App State
         let items = [];
@@ -189,13 +218,13 @@
         let rankings = {};
         let currentPair = null;
         let listName = "my-ranking";
+        let newItems = [];
 
         // Event Listeners
         addBtn.addEventListener('click', addItem);
         itemInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addItem();
         });
-        startBtn.addEventListener('click', startRanking);
         choice1Btn.addEventListener('click', () => makeChoice(choice1Btn.textContent));
         choice2Btn.addEventListener('click', () => makeChoice(choice2Btn.textContent));
         newRankingBtn.addEventListener('click', resetApp);
@@ -203,6 +232,8 @@
         loadBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', loadList);
         saveNameBtn.addEventListener('click', saveListName);
+        rankTopBtn.addEventListener('click', () => startRanking('top'));
+        rankAllBtn.addEventListener('click', () => startRanking('all'));
 
         // Core Functions
         function addItem() {
@@ -222,42 +253,65 @@
             itemInput.value = '';
             errorMessage.textContent = '';
             renderItemsList();
-            startBtn.disabled = items.length < 2;
             
             if (originalItems.length > 0 && items.length > originalItems.length) {
-                const newItemsCount = items.length - originalItems.length;
-                newItemsNotice.textContent = `${newItemsCount} new item(s) added - will only rank new combinations`;
+                newItems = items.filter(item => !originalItems.includes(item));
+                newItemsNotice.textContent = `${newItems.length} new item(s) added`;
+                rankingOptions.style.display = 'block';
             }
         }
 
-        function startRanking() {
+        function startRanking(mode) {
             if (items.length < 2) return;
             
+            // Initialize rankings for new items
             items.forEach(item => {
                 if (!rankings[item]) {
                     rankings[item] = { wins: 0, losses: 0 };
                 }
             });
             
+            // Get current sorted items based on existing rankings
+            const sortedItems = Object.keys(rankings).sort((a, b) => {
+                const scoreA = rankings[a].wins - rankings[a].losses;
+                const scoreB = rankings[b].wins - rankings[b].losses;
+                return scoreB - scoreA;
+            });
+            
+            // Generate pairs based on selected mode
             remainingPairs = [];
-            const newItems = originalItems.length > 0 ? 
+            newItems = originalItems.length > 0 ? 
                 items.filter(item => !originalItems.includes(item)) : 
                 items;
             
-            for (const newItem of newItems) {
-                for (const existingItem of items) {
-                    if (newItem !== existingItem) {
-                        const pair = [newItem, existingItem].sort();
-                        const alreadyCompared = comparisons.some(c => 
-                            c.pair.sort().join() === pair.join()
-                        );
-                        
-                        if (!alreadyCompared) {
+            if (mode === 'top') {
+                const topN = parseInt(topNInput.value) || 5;
+                const targets = sortedItems.slice(0, Math.min(topN, sortedItems.length));
+                
+                for (const newItem of newItems) {
+                    for (const target of targets) {
+                        if (newItem !== target) {
+                            remainingPairs.push([newItem, target]);
+                        }
+                    }
+                }
+            } else { // 'all'
+                for (const newItem of newItems) {
+                    for (const existingItem of items) {
+                        if (newItem !== existingItem) {
                             remainingPairs.push([newItem, existingItem]);
                         }
                     }
                 }
             }
+            
+            // Remove already compared pairs
+            remainingPairs = remainingPairs.filter(pair => {
+                return !comparisons.some(c => 
+                    (c.pair[0] === pair[0] && c.pair[1] === pair[1]) ||
+                    (c.pair[0] === pair[1] && c.pair[1] === pair[0])
+                );
+            });
             
             if (remainingPairs.length === 0) {
                 showResults();
@@ -301,12 +355,15 @@
         }
 
         function showResults() {
+            // Calculate final rankings
             const sortedItems = items.slice().sort((a, b) => {
                 const scoreA = rankings[a] ? rankings[a].wins - rankings[a].losses : 0;
                 const scoreB = rankings[b] ? rankings[b].wins - rankings[b].losses : 0;
                 return scoreB - scoreA;
             });
             
+            // Display results with list name
+            resultsTitle.textContent = `${listName} - Ranking Results`;
             resultsDiv.innerHTML = sortedItems.map((item, index) => 
                 `<div class="result-item">${index + 1}. ${item}</div>`
             ).join('');
@@ -328,7 +385,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${listName}-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `${listName.replace(/[^a-z0-9]/gi, '_')}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -351,9 +408,11 @@
                     
                     listNameInput.value = listName;
                     renderItemsList();
-                    startBtn.disabled = items.length < 2;
                     newItemsNotice.textContent = originalItems.length > 0 ? 
                         `${originalItems.length} items loaded - add more if needed` : '';
+                    
+                    // Hide ranking options until new items are added
+                    rankingOptions.style.display = 'none';
                     
                     event.target.value = '';
                 } catch (error) {
@@ -366,8 +425,8 @@
         function saveListName() {
             const newName = listNameInput.value.trim();
             if (newName) {
-                listName = newName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-                alert(`List name set to: ${newName}`);
+                listName = newName;
+                alert(`List name set to: ${listName}`);
             }
         }
 
@@ -378,12 +437,13 @@
             remainingPairs = [];
             rankings = {};
             currentPair = null;
+            newItems = [];
             
             itemInput.value = '';
             errorMessage.textContent = '';
             newItemsNotice.textContent = '';
             itemsList.innerHTML = '';
-            startBtn.disabled = true;
+            rankingOptions.style.display = 'none';
             progressBar.style.width = '0%';
             progressBar.textContent = '0%';
             
@@ -431,7 +491,11 @@
             }
             
             renderItemsList();
-            startBtn.disabled = items.length < 2;
+            
+            // Hide ranking options if no new items left
+            if (items.length <= originalItems.length) {
+                rankingOptions.style.display = 'none';
+            }
         };
     });
     </script>
