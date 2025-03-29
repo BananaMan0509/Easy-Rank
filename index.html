@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Ranking App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .choice-btn {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 300px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .progress {
+            height: 30px;
+            background-color: #4CAF50;
+            border-radius: 5px;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            width: 0%;
+        }
+        #results {
+            display: none;
+            text-align: left;
+            margin-top: 30px;
+        }
+        .rank-item {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f2f2f2;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Movie Ranking App</h1>
+    <div id="comparison">
+        <h2>Which do you prefer?</h2>
+        <button id="choice1" class="choice-btn"></button>
+        <button id="choice2" class="choice-btn"></button>
+    </div>
+    <div class="progress-bar">
+        <div id="progress" class="progress">0%</div>
+    </div>
+    <div id="results"></div>
+
+    <script src="pairwise-ranker.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
